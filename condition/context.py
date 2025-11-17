@@ -49,8 +49,8 @@ class Context:
             return bool(value), True
         return False, False
 
-    def get_int64(self, key: str) -> (int, bool):
-        """获取int64值"""
+    def get_int(self, key: str) -> (int, bool):
+        """获取int值"""
         value, exists = self.get(key)
         if exists and value is not None:
             try:

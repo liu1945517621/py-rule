@@ -19,10 +19,7 @@ class GroupHandler(ValueHandler):
             result.append("InGroups(Context, ")
             result.append(field_expr)
             result.append(", ")
-            try:
-                values = json.loads(c.val)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"invalid condition:failed to parse group values as JSON: {e}")
+            values = json.loads(c.val)
             for i, value in enumerate(values):
                 if i > 0:
                     result.append(", ")

@@ -1,26 +1,24 @@
-# 修改后的 in_group.py（使用真实Redis连接）
-import contextvars
 import redis
-from typing import List, Tuple, Callable, Any, Optional
+from typing import List, Tuple, Callable, Any, Optional, Dict
 from datetime import datetime
 
-# 创建上下文变量用于存储数据
-condition_context = contextvars.ContextVar('condition_context', default={})
+import group
+from .context import Context
+from abc import ABC, abstractmethod
 
 
 class InGrouper:
     """自定义实现InGroups实现"""
 
-    def match(self, ctx: contextvars.ContextVar, field_val_str: str, params: List[Any]) -> bool:
+    def match(self, ctx: Context, field_val_str: str, params: List[Any]) -> bool:
         """是否由该实现处理"""
         raise NotImplementedError
 
-    def key(self, ctx: contextvars.ContextVar, field_val_str: str, params: List[Any]) -> Tuple[str, Exception]:
+    def key(self, ctx: Context, field_val_str: str, params: List[Any]) -> Tuple[str, Exception]:
         """生成Key"""
         raise NotImplementedError
 
-    def in_groups(self, ctx: contextvars.ContextVar, field_val_str: str, params_list: List[List[Any]]) -> Tuple[
-        bool, Exception]:
+    def in_groups(self, ctx: Context, field_val_str: str, params_list: List[List[Any]]) -> Tuple[bool, Exception]:
         """是否在群组中"""
         raise NotImplementedError
 
@@ -32,14 +30,15 @@ class InRedisGroup(InGrouper):
         self.redis_pool = redis_pool
         self.match_keys = match_keys or []
 
-    def match(self, ctx: contextvars.ContextVar, field_val_str: str, params: List[Any]) -> bool:
+    def match(self, ctx: Context, field_val_str: str, params: List[Any]) -> bool:
         if len(self.match_keys) == 0:
             return True
         if len(params) > 0 and isinstance(params[0], str):
             return params[0] in self.match_keys
         return False
 
-    def key(self, ctx: contextvars.ContextVar, field_val_str: str, params: List[Any]) -> Tuple[str, Exception]:
+    def key(self, ctx: Context, field_val_str: str, params: List[Any]) -> tuple[str, ValueError] | tuple[
+        Any, None] | tuple[str, Exception]:
         if len(params) == 0:
             return "", ValueError("InRedisGroup params must not be empty")
         if not isinstance(params[0], str):
@@ -50,14 +49,14 @@ class InRedisGroup(InGrouper):
         except Exception as e:
             return "", e
 
-    def in_groups(self, ctx: contextvars.ContextVar, field_val_str: str, params_list: List[List[Any]]) -> tuple[
-                                                                                                              bool, None] | \
-                                                                                                          tuple[
-                                                                                                              bool, Exception] | \
-                                                                                                          tuple[
-                                                                                                              bool, Any] | \
-                                                                                                          tuple[
-                                                                                                              bool, ValueError]:
+    def in_groups(self, ctx: Context, field_val_str: str, params_list: List[List[Any]]) -> tuple[
+                                                                                               bool, None] | \
+                                                                                           tuple[
+                                                                                               bool, Exception] | \
+                                                                                           tuple[
+                                                                                               bool, Any] | \
+                                                                                           tuple[
+                                                                                               bool, ValueError]:
         """判断是否在群组中
 
         Args:
@@ -82,7 +81,7 @@ class InRedisGroup(InGrouper):
             if inner_err:
                 return False, inner_err
 
-            storage = ctx.get()
+            storage = ctx.get_int(key)
             if key in storage:
                 remaining_ttl = storage[key]
                 inner_result, inner_err = self._in_group(now, remaining_ttl, params)
@@ -104,10 +103,7 @@ class InRedisGroup(InGrouper):
                 remaining_ttl = self.redis_pool.ttl(key)
 
                 # 存储到上下文变量
-                storage = ctx.get()
-                new_storage = storage.copy()
-                new_storage[key] = remaining_ttl
-                ctx.set(new_storage)
+                ctx.set(key, remaining_ttl)
 
                 return self._in_group(now, remaining_ttl, params)
             else:
@@ -131,10 +127,7 @@ class InRedisGroup(InGrouper):
 
                     key, _ = self.key(ctx, field_val_str, params)
                     # 存储到上下文变量
-                    storage = ctx.get()
-                    new_storage = storage.copy()
-                    new_storage[key] = remaining_ttl
-                    ctx.set(new_storage)
+                    ctx.set(key, remaining_ttl)
 
                     inner_result, inner_err = self._in_group(now, remaining_ttl, params)
                     if inner_err:
@@ -184,3 +177,74 @@ class InRedisGroup(InGrouper):
                 result = True
 
         return result, None
+
+
+# 定义GroupToInGrouperConverter接口
+class GroupToInGrouperConverter(ABC):
+    """群组与InGrouper的转换器"""
+
+    @abstractmethod
+    def match(self, g: group.Group) -> bool:
+        """该群组是否由该转换器转换"""
+        pass
+
+    @abstractmethod
+    def in_grouper_index(self, g: group.Group) -> str:
+        """InGrouper的分组标识，如同是InRedisGrouper，会根据Redis的配置再分组"""
+        pass
+
+    @abstractmethod
+    def convert(self, groups: List[group.Group]) -> Tuple[InGrouper, Exception]:
+        """转换"""
+        pass
+
+
+# 全局变量
+AllGroupToInGrouperConverters: List[GroupToInGrouperConverter] = []
+
+
+class GroupToInRedisGroupConverter(GroupToInGrouperConverter):
+    """Redis群组转换器"""
+
+    def match(self, g: group.Group) -> bool:
+        """判断群组是否为Redis类型"""
+        return g.data_source.type == group.DataSourceType.REDIS
+
+    def in_grouper_index(self, g: group.Group) -> str:
+        """生成Redis群组的分组标识"""
+        data_source = g.data_source
+        return f"{data_source.type}:{data_source.addrs}:{data_source.user}:{data_source.db}"
+
+    def convert(self, groups: List[group.Group]) -> tuple[None, ValueError] | tuple[None, RuntimeError] | tuple[
+        None, Any] | tuple[InRedisGroup, None] | tuple[None, Exception]:
+        """将群组转换为InRedisGroup"""
+        try:
+            keys = []
+            for g in groups:
+                keys.append(g.data_source.key_format)
+
+            conf = groups[0].data_source
+            try:
+                db = int(conf.db)
+            except (ValueError, TypeError) as e:
+                return None, ValueError(f"Invalid DB value: {e}")
+
+            # 使用python的方法创建Redis连接池
+            redis_pool = redis.ConnectionPool(
+                host=conf.addrs[0],
+                port=conf.addrs[1],
+                password=conf.password,
+                db=db,
+                pool_size=16
+            )
+            client = redis.Redis(connection_pool=redis_pool)
+
+            in_grouper = InRedisGroup(client, keys)
+            return in_grouper, None
+
+        except Exception as e:
+            return None, e
+
+
+# 初始化全局转换器列表
+AllGroupToInGrouperConverters.append(GroupToInRedisGroupConverter())

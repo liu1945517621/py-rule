@@ -4,7 +4,6 @@ from typing import List, Optional, Dict
 from condition.op import Op, JoinOp
 from condition.var import ValType
 
-
 class Condition:
     def __init__(self,
                  field: str = "",
@@ -55,7 +54,7 @@ class Condition:
                 all(c1.equals(c2) for c1, c2 in zip(self.conditions, other.conditions)))
 
     def is_join(self) -> bool:
-        """判断是否为组合条件"""
+        """判断是否为连接条件"""
         return self.join_op is not None
 
     def is_always_true(self) -> bool:
