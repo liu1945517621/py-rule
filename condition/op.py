@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class Op(Enum):
     EQ = "=="
     NE = "!="
@@ -40,14 +39,18 @@ class Op(Enum):
         }
         return forward_map.get(self)
 
-
 class JoinOp(Enum):
     AND = "and"
     OR = "or"
     NOT = "not"
 
     def code(self) -> str:
-        return self.value
+        # 对 NOT 运算符特殊处理，只在后面添加空格
+        if self == JoinOp.NOT:
+            return f"{self.value} "
+        # AND 和 OR 运算符前后都添加空格
+        else:
+            return f" {self.value} "
 
     def text(self) -> str:
         texts = {
@@ -56,7 +59,6 @@ class JoinOp(Enum):
             JoinOp.NOT: "非"
         }
         return texts.get(self, "未知")
-
 
 # 定义所有操作符常量
 OpGt = Op.GT

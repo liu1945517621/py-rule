@@ -2,7 +2,6 @@
 from typing import List, Set, Callable, Optional
 from .condition import Condition
 
-
 class Selector:
     """选择器接口，用于筛选字段"""
 
@@ -13,7 +12,6 @@ class Selector:
     def match(self, c: Condition) -> bool:
         """匹配条件"""
         raise NotImplementedError
-
 
 class DefaultSelector(Selector):
     """默认选择器实现"""
@@ -60,7 +58,6 @@ class DefaultSelector(Selector):
 
         return include_match or exclude_match or predicate_match
 
-
 def join_selector(*selectors: Selector) -> Selector:
     """连接多个选择器"""
     if len(selectors) == 0:
@@ -68,7 +65,6 @@ def join_selector(*selectors: Selector) -> Selector:
     if len(selectors) == 1:
         return selectors[0]
     return JoinedSelector(selectors)
-
 
 class JoinedSelector(Selector):
     """连接选择器实现"""
@@ -89,7 +85,6 @@ class JoinedSelector(Selector):
             if selector.match(c):
                 return True
         return False
-
 
 def not_selector(selector: Selector) -> Selector:
     """取反选择器"""

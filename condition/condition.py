@@ -79,7 +79,11 @@ class Condition:
         return not_cond
 
     def simplify(self) -> 'Condition':
-        """简化条件"""
+        """
+        简化条件
+
+        not(not(A)) -> A
+        """
         if self.is_join() and self.join_op == JoinOp.NOT:
             if len(self.conditions) == 1:
                 child = self.conditions[0]
@@ -88,7 +92,12 @@ class Condition:
         return self
 
     def transform_forward(self) -> 'Condition':
-        """前向转换条件"""
+        """
+            转成正向表达式
+            不等于 -》 not 等于
+            不包含于 -》not 包含于
+            不包含 -》 not 包含
+        """
         if self.op and self.op.forward_op():
             not_cond = Condition()
             not_cond.join_op = JoinOp.NOT

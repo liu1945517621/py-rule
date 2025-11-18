@@ -1,11 +1,10 @@
 import redis
-from typing import List, Tuple, Callable, Any, Optional, Dict
+from typing import List, Tuple, Callable, Any, Optional,Dict
 from datetime import datetime
 
 import group
 from .context import Context
 from abc import ABC, abstractmethod
-
 
 class InGrouper:
     """自定义实现InGroups实现"""
@@ -21,7 +20,6 @@ class InGrouper:
     def in_groups(self, ctx: Context, field_val_str: str, params_list: List[List[Any]]) -> Tuple[bool, Exception]:
         """是否在群组中"""
         raise NotImplementedError
-
 
 class InRedisGroup(InGrouper):
     """通过 redis key的ttl实现InGroups"""
@@ -50,13 +48,13 @@ class InRedisGroup(InGrouper):
             return "", e
 
     def in_groups(self, ctx: Context, field_val_str: str, params_list: List[List[Any]]) -> tuple[
-                                                                                               bool, None] | \
-                                                                                           tuple[
-                                                                                               bool, Exception] | \
-                                                                                           tuple[
-                                                                                               bool, Any] | \
-                                                                                           tuple[
-                                                                                               bool, ValueError]:
+                                                                                                              bool, None] | \
+                                                                                                          tuple[
+                                                                                                              bool, Exception] | \
+                                                                                                          tuple[
+                                                                                                              bool, Any] | \
+                                                                                                          tuple[
+                                                                                                              bool, ValueError]:
         """判断是否在群组中
 
         Args:
@@ -178,7 +176,6 @@ class InRedisGroup(InGrouper):
 
         return result, None
 
-
 # 定义GroupToInGrouperConverter接口
 class GroupToInGrouperConverter(ABC):
     """群组与InGrouper的转换器"""
@@ -198,10 +195,8 @@ class GroupToInGrouperConverter(ABC):
         """转换"""
         pass
 
-
 # 全局变量
 AllGroupToInGrouperConverters: List[GroupToInGrouperConverter] = []
-
 
 class GroupToInRedisGroupConverter(GroupToInGrouperConverter):
     """Redis群组转换器"""
@@ -244,7 +239,6 @@ class GroupToInRedisGroupConverter(GroupToInGrouperConverter):
 
         except Exception as e:
             return None, e
-
 
 # 初始化全局转换器列表
 AllGroupToInGrouperConverters.append(GroupToInRedisGroupConverter())

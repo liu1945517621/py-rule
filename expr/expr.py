@@ -11,21 +11,20 @@ class ExpressionBuilder:
 
     def build_expression(self, c: Condition) -> str:
         """构建表达式字符串"""
-
-        target = c.transform_forward()   # 正向转换条件
-        target = target.simplify()       # 简化条件
+        # 简化条件
+        target = c.transform_forward()
+        target = target.simplify()
 
         result = []
         self._build_expr(target, result)
         return ''.join(result)
 
     def _build_expr(self, c: Condition, result: List[str]) -> None:
-        """递归构建表达式字符串"""
-        # 判断是否为连接条件（包含子条件）
+        """构建表达式字符串"""
         if c.is_join():
             self._build_join_expression(c, result)
             return
-        # 若为单个条件，检查必要字段（field/op/val）是否存在
+
         if not c.field or not c.op or not c.val:
             return
 
@@ -54,7 +53,7 @@ class ExpressionBuilder:
         for i, child in enumerate(c.conditions):
             if i > 0:
                 result.append(c.join_op.code())
-            self._build_expr(child, result)  # 递归处理子条件
+            self._build_expr(child, result)
         result.append(")")
 
     def _build_single_expression(self, c: Condition, result: List[str]) -> None:
@@ -85,8 +84,9 @@ class ExpressionBuilder:
         Returns:
             List[str]: 拆分后的表达式列表
         """
-        # 简化条件
+        # 转正向表达式
         target = c.transform_forward()
+        # 简化条件
         target = target.simplify()
 
         return self._recursive_split_or(target)

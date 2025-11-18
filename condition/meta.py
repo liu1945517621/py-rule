@@ -2,10 +2,8 @@ from typing import List, Optional, Tuple, Any
 from .var import ValType
 import json
 
-
 class MetaValue:
     """元数据值"""
-
     def __init__(self, val: str = "", val_type: ValType = None,
                  name: str = "", val_dic: str = "", period_unit: int = 0):
         self.val = val
@@ -14,10 +12,8 @@ class MetaValue:
         self.val_dic = val_dic
         self.period_unit = period_unit  # 当字段类型为时间，值为相对时间时，相对时间的单位
 
-
 class Meta:
     """元数据"""
-
     def __init__(self, field: str = "", name: str = "",
                  support_val_types: List['ValTypeName'] = None,
                  support_ops: List['Op'] = None,
@@ -33,10 +29,8 @@ class Meta:
         self.keyword = keyword  # 是否允许使用关键词方式进行匹配，ContainsAny操作使用
         self.required = required  # 值是否必须，当在非类型操作符时，会需要额外验证是否零值
 
-
 class ValTypeName:
     """值类型名称"""
-
     def __init__(self, id: ValType = None, name: str = ""):
         self.id = id  # 值类型
         self.name = name  # 值类型名

@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from typing import Callable, List, Tuple, Any, Union, Optional, Dict
+from typing import Callable, List,Tuple, Any, Union, Optional, Dict
 import redis
 
 import group
@@ -8,6 +8,7 @@ from .context import Context
 import threading
 from concurrent.futures import ThreadPoolExecutor
 import logging
+
 
 
 def add_period_func() -> Tuple[str, Callable]:
@@ -125,7 +126,6 @@ def is_not_zero_func() -> Tuple[str, Callable]:
 
     return "IsNotZero", fn
 
-
 def in_bi_crowd_func(key_prefix: str, redis_pool: redis.Redis) -> Tuple[str, callable]:
     """
     InBICrowdFunc 用于给 expr.Function 添加InBICrowd方法
@@ -137,7 +137,6 @@ def in_bi_crowd_func(key_prefix: str, redis_pool: redis.Redis) -> Tuple[str, cal
     Returns:
         tuple: (函数名, 函数实现)
     """
-
     def in_bi_crowd_impl(*params: Any) -> Tuple[bool, Union[Exception, None]]:
         """
         InBICrowd函数实现
@@ -236,12 +235,9 @@ def in_bi_crowd_func(key_prefix: str, redis_pool: redis.Redis) -> Tuple[str, cal
 
 def in_groups_func(in_groupers: List[InGrouper]) -> Tuple[str, Callable]:
     """用于给 expr.Function 添加InGroups方法"""
-
     def get_in_groups():
         return in_groupers
-
     return _in_groups_func(get_in_groups)
-
 
 def _in_groups_func(get_in_groups: Callable[[], List[InGrouper]]) -> Tuple[str, Callable]:
     """

@@ -1,20 +1,18 @@
 from enum import IntEnum
 from typing import List
 
-
 class ValType(IntEnum):
     """值类型枚举"""
-    INT = 1  # 整型
-    STRING = 2  # 字符串
-    BOOL = 3  # 布尔
-    FLOAT = 4  # 浮点
-    TIME = 8  # 时间
-    TIME_BEFORE = 9  # 现在之前
-    TIME_AFTER = 10  # 现在之后
-    BI_CROWD = 11  # BI人群包
-    GROUP = 12  # 群组，可以使用ContainsAny及In操作，值由InGrouper处理
-    VAR = 13  # 变量，可以引用到本表达式环境字段
-
+    INT = 1        # 整型
+    STRING = 2     # 字符串
+    BOOL = 3       # 布尔
+    FLOAT = 4      # 浮点
+    TIME = 8       # 时间
+    TIME_BEFORE = 9   # 现在之前
+    TIME_AFTER = 10   # 现在之后
+    BI_CROWD = 11     # BI人群包
+    GROUP = 12        # 群组，可以使用ContainsAny及In操作，值由InGrouper处理
+    VAR = 13          # 变量，可以引用到本表达式环境字段
 
 # 所有值类型列表
 AllValTypes: List[ValType] = [
@@ -30,10 +28,8 @@ AllValTypes: List[ValType] = [
     ValType.BI_CROWD,
 ]
 
-
 class ValAndType:
     """值和类型组合"""
-
     def __init__(self, val: str = "", type_: ValType = None):
         self.val = val
         self.type = type_
